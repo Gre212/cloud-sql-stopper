@@ -8,12 +8,19 @@
 
 <walkthrough-project-setup></walkthrough-project-setup>
 
-## ディレクトリの移動
+## プロジェクトの確認
 
-Terraform の設定ファイルがあるディレクトリに移動します。
+まず、リソースを作成する対象プロジェクトが正しいかを確認します。
+**本番環境など、データベースを止めてはいけない環境には決してデプロイしないでください。**
 
 ```bash
-cd terraform
+echo "Current Project: $GOOGLE_CLOUD_PROJECT"
+```
+
+もしプロジェクトが未指定であったり、異なるプロジェクトの場合は以下のコマンドから正しいプロジェクトを設定します。
+
+```bash
+gcloud config set project <walkthrough-project-id/>
 ```
 
 ## Terraform の初期化
@@ -27,10 +34,9 @@ terraform init
 ## デプロイの実行
 
 Terraform を使用してリソースをデプロイします。
-`YOUR_PROJECT_ID` は自動的に現在のプロジェクト ID に置き換えられます。
 
 ```bash
-terraform apply -var="project_id=<walkthrough-project-id/>"
+terraform apply -var="project_id=$GOOGLE_CLOUD_PROJECT"
 ```
 
 確認プロンプトが表示されたら、`yes` と入力して Enter キーを押してください。

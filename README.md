@@ -12,35 +12,24 @@ Cloud SQL インスタンスを毎日指定した時間（デフォルト 22:00 
 
 ### 1. プロジェクトの選択
 
-Cloud Shellを開く前に、使用するプロジェクトを明示的に選択してください：
+以下のリンクから、対象とするプロジェクトを選択します。
+**!!!本番環境へのデプロイは非推奨です。開発環境など、DBを止めたいプロジェクトにのみ適用してください!!!**
 
-1. [GCPコンソール](https://console.cloud.google.com/)にアクセス
-2. 画面上部のプロジェクトセレクター（通常「プロジェクト名」または「プロジェクトを選択」と表示）をクリック
-3. **「プロジェクトを選択」ダイアログ**が開くので、以下を確認：
-   - Cloud SQLインスタンスが存在するプロジェクトを選択
-   - 複数のプロジェクトがある場合は、検索ボックスで絞り込み可能
-4. 選択後、画面上部にプロジェクト名とプロジェクトIDが表示されることを確認
-   - 例: `My Project (my-project-123456)`
+[Project Selector](https://console.cloud.google.com/projectselector2/home/dashboard?hl=ja)
 
 ### 2. Cloud Shell での実行
 
 以下のボタンをクリックすると、Google Cloud Shell が開き、このリポジトリがクローンされます。
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.png)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/Gre212/cloud-sql-stopper&cloudshell_tutorial=tutorial.md)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.png)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/Gre212/cloud-sql-stopper&cloudshell_tutorial=tutorial.md&cloudshell_workspace=terraform)
 
-### 3. デプロイ実行
+### 3. チュートリアルに沿って実行
 
-Cloud Shellでは、プロジェクトIDが環境変数として自動的に設定されています：
+表示されるチュートリアルに沿ってコマンドを実行します。
 
 ```bash
 # 現在のプロジェクトを確認
 echo "Current Project: $GOOGLE_CLOUD_PROJECT"
-
-# もし違うプロジェクトが設定されている場合は変更
-# gcloud config set project YOUR-PROJECT-ID
-
-# terraform ディレクトリに移動
-cd terraform
 
 # Terraformを初期化
 terraform init
@@ -49,9 +38,22 @@ terraform init
 terraform apply -var="project_id=$GOOGLE_CLOUD_PROJECT"
 ```
 
+#### 補足: プロジェクトの指定方法
+
+Cloud ShellではプロジェクトIDが環境変数として自動的に設定されているため、その変数を利用してプロジェクトを指定します。
+もし意図しないプロジェクトが設定されていた場合は、修正してください。
+
+```bash
+# 現在のプロジェクトを確認
+echo "Current Project: $GOOGLE_CLOUD_PROJECT"
+
+# もし違うプロジェクトが設定されている場合は変更
+# gcloud config set project YOUR-PROJECT-ID
+```
+
 #### 補足: スクリプトの直接実行
 
-デプロイせずにスクリプトを直接実行してテストする場合：
+デプロイせずにスクリプトを直接実行してテストする場合
 
 ```bash
 # Cloud Shellで直接実行（プロジェクトIDは自動取得）
@@ -63,12 +65,10 @@ gcloud config get-value project
 echo $GOOGLE_CLOUD_PROJECT
 ```
 
-**注意**: `src/main.py` は `google.auth.default()` を使用しているため、Cloud Shell環境では自動的に `GOOGLE_CLOUD_PROJECT` 環境変数からプロジェクトIDを取得します。
-
 ## 手動デプロイ手順（ローカル環境）
 
-ローカル環境からデプロイする場合：
+ローカル環境からデプロイする場合は、
 
-1. `terraform` ディレクトリに移動します。
-2. `terraform init` を実行します。
-3. `terraform apply -var="project_id=YOUR_PROJECT_ID"` を実行します。
+1. `terraform` ディレクトリに移動する
+2. `terraform init` を実行
+3. `terraform apply -var="project_id=YOUR_PROJECT_ID"` を実行
