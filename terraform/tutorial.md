@@ -11,17 +11,15 @@
 ## プロジェクトの確認
 
 まず、リソースを作成する対象プロジェクトが正しいかを確認します。  
-**本番環境など、データベースを止めてはいけない環境には決してデプロイしないでください。**
+**本番環境や、本番用 Cloud SQL インスタンスが含まれるプロジェクトには絶対にデプロイしないでください。これ以降の手順を実施すると、プロジェクト内のすべてのDBが停止される処理が設定されます。**
+
+デプロイするプロジェクトが以下のプロジェクトで正しいかを改めて確認してください。
 
 ```bash
-echo "Current Project: $GOOGLE_CLOUD_PROJECT"
+<walkthrough-project-id/>
 ```
 
-もしプロジェクトが未指定であったり、異なるプロジェクトの場合は以下のコマンドから正しいプロジェクトを設定します。
-
-```bash
-gcloud config set project <walkthrough-project-id/>
-```
+誤っている場合はこの画面の「前へ」で前の画面に戻り、プロジェクトを選択し直してください。
 
 ## Terraform の初期化
 
@@ -36,7 +34,7 @@ terraform init
 Terraform を使用してリソースをデプロイします。
 
 ```bash
-terraform apply -var="project_id=$GOOGLE_CLOUD_PROJECT"
+terraform apply -var="project_id=<walkthrough-project-id/>"
 ```
 
 確認プロンプトが表示されたら、`yes` と入力して Enter キーを押してください。
