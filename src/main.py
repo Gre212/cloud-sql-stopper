@@ -41,14 +41,9 @@ def stop_cloud_sql_instances(request):
             # Get current activation policy
             activation_policy = instance.get('settings', {}).get('activationPolicy', 'ALWAYS')
 
-            # Skip if instance is already stopped
-            if state in ['STOPPED', 'SUSPENDED'] or activation_policy == 'NEVER':
-                logger.info(f"Instance {name} is already stopped (State: {state}, ActivationPolicy: {activation_policy})")
-                continue
-
-            # Skip if instance is not runnable
-            if state != 'RUNNABLE':
-                logger.info(f"Instance {name} is in state {state} with ActivationPolicy {activation_policy}")
+            # Skip if instance is not runnable or already set to stop
+            if state != 'RUNNABLE' or activation_policy == 'NEVER':
+                logger.info(f"Instance {name} is not stoppable (State: {state}, ActivationPolicy: {activation_policy})")
                 continue
 
             # Stop the running instance
