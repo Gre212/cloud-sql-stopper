@@ -1,7 +1,6 @@
 import logging
 import google.auth
 from googleapiclient import discovery
-from googleapiclient.errors import HttpError
 
 # Set up logging once at module level
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +26,9 @@ def stop_cloud_sql_instances(request):
             return "No instances found", 200
 
         stopped_count = 0
-        
+        skipped_count = 0
+        error_count = 0
+
         for instance in instances:
             name = instance.get('name')
             state = instance.get('state')
@@ -36,6 +37,7 @@ def stop_cloud_sql_instances(request):
             # Check if instance should be skipped
             if user_labels.get('auto_stop') == 'false':
                 logger.info(f"Skipping instance {name} (auto_stop=false)")
+                skipped_count += 1
                 continue
 
             # Get current activation policy
@@ -44,6 +46,7 @@ def stop_cloud_sql_instances(request):
             # Skip if instance is not runnable or already set to stop
             if state != 'RUNNABLE' or activation_policy == 'NEVER':
                 logger.info(f"Instance {name} is not stoppable (State: {state}, ActivationPolicy: {activation_policy})")
+                skipped_count += 1
                 continue
 
             # Stop the running instance
@@ -67,13 +70,14 @@ def stop_cloud_sql_instances(request):
 
             except Exception as patch_error:
                 logger.error(f"Unexpected error stopping instance {name}: {patch_error}")
+                error_count += 1
                 # Continue processing other instances even if one fails
 
-        return f"Processed {len(instances)} instances. Initiated stop for {stopped_count} instances.", 200
+        return (f"Processed {len(instances)} instances: "
+                f"Stopped: {stopped_count}, "
+                f"Skipped: {skipped_count}, "
+                f"Errors: {error_count}"), 200
 
-    except HttpError as e:
-        logger.error(f"HTTP API error occurred: {e}")
-        return f"HTTP API error: {e}", 500
     except Exception as e:
         logger.error(f"Unexpected error occurred: {e}")
         return f"Unexpected error: {e}", 500
