@@ -70,15 +70,6 @@ def stop_cloud_sql_instances(request):
                 logger.info(f"Stop operation initiated for {name}: {stop_op.get('name')}")
                 stopped_count += 1
 
-            except HttpError as http_error:
-                error_message = str(http_error)
-                # Check if the error is about updating properties when instance is stopped
-                if "properties other than activation policy are not allowed" in error_message:
-                    logger.warning(f"Instance {name} appears to be in an intermediate state. It may have been stopped recently.")
-                else:
-                    logger.error(f"HTTP error stopping instance {name}: {http_error}")
-                # Continue processing other instances even if one fails
-
             except Exception as patch_error:
                 logger.error(f"Unexpected error stopping instance {name}: {patch_error}")
                 # Continue processing other instances even if one fails
