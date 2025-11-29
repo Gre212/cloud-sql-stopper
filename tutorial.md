@@ -37,5 +37,7 @@ terraform apply -var="project_id=<walkthrough-project-id/>"
 
 ## 完了
 
-おめでとうございます！ Cloud SQL 自動停止ツールのデプロイが完了しました。
+以上でセットアップが完了しました。このプロジェクト内のデータベースは22時になると自動で停止するようになります。
 Cloud Scheduler のジョブ `stop-cloudsql-daily` が作成されていることを確認してください。
+
+もし停止したくないデータベースがある場合は、対象のデータベースに `auto_stop: false` のラベルを設定してください。
