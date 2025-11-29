@@ -3,12 +3,12 @@ import google.auth
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 
+# Set up logging once at module level
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def stop_cloud_sql_instances(request):
     """Stops Cloud SQL instances that do not have the 'auto_stop' label set to 'false'."""
-    
-    # Set up logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
 
     try:
         # Get credentials and project ID
@@ -18,16 +18,9 @@ def stop_cloud_sql_instances(request):
         service = discovery.build('sqladmin', 'v1beta4', credentials=credentials)
 
         # List all instances in the project
-        try:
-            request = service.instances().list(project=project_id)
-            response = request.execute()
-            instances = response.get('items', [])
-        except HttpError as http_error:
-            logger.error(f"Failed to list Cloud SQL instances: {http_error}")
-            return f"Failed to list instances: {http_error}", 500
-        except Exception as e:
-            logger.error(f"Unexpected error listing instances: {e}")
-            return f"Unexpected error: {e}", 500
+        list_request = service.instances().list(project=project_id)
+        response = list_request.execute()
+        instances = response.get('items', [])
 
         if not instances:
             logger.info("No Cloud SQL instances found.")
@@ -48,48 +41,53 @@ def stop_cloud_sql_instances(request):
             # Get current activation policy
             activation_policy = instance.get('settings', {}).get('activationPolicy', 'ALWAYS')
 
-            # Stop the instance if it is running
-            # Check both state and activation policy to ensure instance is truly running
-            if state == 'RUNNABLE' and activation_policy != 'NEVER':
-                logger.info(f"Stopping instance {name} (State: {state}, ActivationPolicy: {activation_policy})...")
+            # Skip if instance is already stopped
+            if state in ['STOPPED', 'SUSPENDED'] or activation_policy == 'NEVER':
+                logger.info(f"Instance {name} is already stopped (State: {state}, ActivationPolicy: {activation_policy})")
+                continue
 
-                try:
-                    stop_request_body = {
-                        "settings": {
-                            "activationPolicy": "NEVER"
-                        }
+            # Skip if instance is not runnable
+            if state != 'RUNNABLE':
+                logger.info(f"Instance {name} is in state {state} with ActivationPolicy {activation_policy}")
+                continue
+
+            # Stop the running instance
+            logger.info(f"Stopping instance {name} (State: {state}, ActivationPolicy: {activation_policy})...")
+
+            try:
+                stop_request_body = {
+                    "settings": {
+                        "activationPolicy": "NEVER"
                     }
+                }
 
-                    stop_op = service.instances().patch(
-                        project=project_id,
-                        instance=name,
-                        body=stop_request_body
-                    ).execute()
+                stop_op = service.instances().patch(
+                    project=project_id,
+                    instance=name,
+                    body=stop_request_body
+                ).execute()
 
-                    logger.info(f"Stop operation initiated for {name}: {stop_op.get('name')}")
-                    stopped_count += 1
+                logger.info(f"Stop operation initiated for {name}: {stop_op.get('name')}")
+                stopped_count += 1
 
-                except HttpError as http_error:
-                    error_message = str(http_error)
+            except HttpError as http_error:
+                error_message = str(http_error)
+                # Check if the error is about updating properties when instance is stopped
+                if "properties other than activation policy are not allowed" in error_message:
+                    logger.warning(f"Instance {name} appears to be in an intermediate state. It may have been stopped recently.")
+                else:
+                    logger.error(f"HTTP error stopping instance {name}: {http_error}")
+                # Continue processing other instances even if one fails
 
-                    # Check if the error is about updating properties when instance is stopped
-                    if "properties other than activation policy are not allowed" in error_message:
-                        logger.warning(f"Instance {name} appears to be in an intermediate state. It may have been stopped recently.")
-                    else:
-                        logger.error(f"HTTP error stopping instance {name}: {http_error}")
-                    # Continue processing other instances even if one fails
-
-                except Exception as patch_error:
-                    logger.error(f"Unexpected error stopping instance {name}: {patch_error}")
-                    # Continue processing other instances even if one fails
-
-            elif state in ['STOPPED', 'SUSPENDED'] or activation_policy == 'NEVER':
-                logger.info(f"Instance {name} is already stopped (State: {state}, ActivationPolicy: {activation_policy}). Skipping.")
-            else:
-                logger.info(f"Instance {name} is in state {state} with ActivationPolicy {activation_policy}. Skipping.")
+            except Exception as patch_error:
+                logger.error(f"Unexpected error stopping instance {name}: {patch_error}")
+                # Continue processing other instances even if one fails
 
         return f"Processed {len(instances)} instances. Initiated stop for {stopped_count} instances.", 200
 
+    except HttpError as e:
+        logger.error(f"HTTP API error occurred: {e}")
+        return f"HTTP API error: {e}", 500
     except Exception as e:
-        logger.error(f"Error occurred: {e}")
-        return f"Error: {e}", 500
+        logger.error(f"Unexpected error occurred: {e}")
+        return f"Unexpected error: {e}", 500
